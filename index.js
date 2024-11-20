@@ -39,6 +39,15 @@ app.get("/", (req, res) => {
   res.send("server is running");
 });
 
+//  jwt
+app.post("/authentication", async (req, res) => {
+  const userEmail = req.body;
+  const token = jwt.sign(userEmail, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: "1d",
+  });
+  res.send({ token });
+});
+
 app.listen(port, () => {
   // please change the inside bracket() to {}.
   console.log(`Server is running on port ${port}`);
