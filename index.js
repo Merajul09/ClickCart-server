@@ -22,10 +22,24 @@ const client = new MongoClient(uri, {
   },
 });
 
+const userCollection = client.db("Click-cart").collection("users");
+const productCollection = client.db("Click-cart").collection("products");
+
 async function run() {
   try {
     // await client.connect();
 
+    // insert user
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: "User Already exists" });
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("You successfully connected to MongoDB!");
