@@ -1,8 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cookieParser = require("cookie-parser");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
@@ -16,6 +16,33 @@ const corsOption = {
 app.use(express.json());
 app.use(cors(corsOption));
 app.use(cookieParser());
+
+// token verification
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.send({ message: "No Token" });
+  }
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.send({ message: "Invalid token" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
+// verify seller
+const verifySeller = async (req, res, next) => {
+  const email = req.decoded.email;
+  const query = { email: email };
+  const user = await userCollection.findOne(query);
+  if (user?.role !== "seller") {
+    return res.send({ message: "forbidden access" });
+  }
+  next();
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.wov5hm5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -85,6 +112,40 @@ async function run() {
       const brands = [...new Set(products.map((product) => product.brand))];
       res.json({ products, categories, brands, totalProducts });
     });
+
+    // get single product
+    app.get("/product/:id", async (req, res) => {
+      const id = { id: req.params.id };
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.findOne(query);
+      res.send(result);
+    });
+
+    // add to wishlist
+    app.patch("/wishlist/add", async (req, res) => {
+      const { userEmail, productId } = req.body;
+      const result = await userCollection.updateOne(
+        { email: userEmail },
+        { $addToSet: { wishlist: new ObjectId(String(productId)) } }
+      );
+      res.send(result);
+    });
+
+    // get wishlist
+    app.get("/wishlist/:userId", async (req, res) => {
+      const userId = req.params.userId;
+      const user = await userCollection.findOne({
+        _id: new ObjectId(String(userId)),
+      });
+      if (!user) {
+        return res.send({ message: "User not found" });
+      }
+      const wishlist = await productCollection
+        .find({ _id: { $in: user.wishlist || [] } })
+        .toArray();
+      res.send(wishlist);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("You successfully connected to MongoDB!");
