@@ -61,11 +61,16 @@ async function run() {
   try {
     // await client.connect();
 
-    // get user
+    // get user by email
     app.get("/user/:email", async (req, res) => {
       const query = { email: req.params.email };
       const user = await userCollection.findOne(query);
       res.send(user);
+    });
+    // get all user
+    app.get("/users", async (req, res) => {
+      const users = await userCollection.find({}).toArray();
+      res.send(users);
     });
 
     // insert user
@@ -79,7 +84,12 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-
+    // add product
+    app.post("/add-product", verifyJWT, verifySeller, async (req, res) => {
+      const product = req.body;
+      const result = await productCollection.insertOne(product);
+      res.send(result);
+    });
     // get product
     app.get("/all-products", async (req, res) => {
       const { title, brand, sort, category, page = 1, limit = 6 } = req.query;
@@ -121,12 +131,36 @@ async function run() {
       res.send(result);
     });
 
+    // get user listed products
+    app.get("/listed-products/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await userCollection.findOne({
+        email: email,
+      });
+      if (!user) {
+        return res.send({ message: "User not found" });
+      }
+      const products = await productCollection
+        .find({ sellerEmail: email })
+        .toArray();
+      res.send(products);
+    });
+
     // add to wishlist
     app.patch("/wishlist/add", async (req, res) => {
       const { userEmail, productId } = req.body;
       const result = await userCollection.updateOne(
         { email: userEmail },
         { $addToSet: { wishlist: new ObjectId(String(productId)) } }
+      );
+      res.send(result);
+    });
+    // Remove from wishlist
+    app.patch("/wishlist/remove", async (req, res) => {
+      const { userEmail, productId } = req.body;
+      const result = await userCollection.updateOne(
+        { email: userEmail },
+        { $pull: { wishlist: new ObjectId(String(productId)) } }
       );
       res.send(result);
     });
