@@ -2,6 +2,12 @@
 
 Click Cart is a user-friendly e-commerce platform designed for smooth shopping experiences. The application offers a wide range of features, enabling users to browse, search, and purchase products with ease.
 
+## Client repo
+
+Visit the client repo here: [Click Cart Client](https://github.com/Merajul09/ClickCart)
+
+---
+
 ## Features
 
 - **Product Listing**: View a wide variety of products displayed with images, prices, and descriptions.
